@@ -6,6 +6,7 @@ import { FieldMapping } from '@/components/field-mapping'
 import { BatchConfig } from '@/components/batch-config'
 import { CandidatePreview } from '@/components/candidate-preview'
 import { ScreeningResult } from '@/components/screening-result'
+import { ResultsExport } from '@/components/results-export'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -248,13 +249,37 @@ export default function Home() {
                   </CardContent>
                 </Card>
               ) : (
-                screeningResults.map((result) => (
-                  <ScreeningResult
-                    key={result.id}
-                    result={result}
-                    candidate={result.candidate}
+                <>
+                  <ResultsExport
+                    originalCandidates={candidates}
+                    screeningResults={screeningResults.map((result) => ({
+                      candidate_email: result.candidate?.email || '',
+                      match_score: result.score || 0,
+                      decision: result.rating === 'green' ? 'Strong Match' : result.rating === 'yellow' ? 'Potential Match' : 'Not a Match',
+                      matching_skills: result.strengths || [],
+                      missing_skills: result.weaknesses || [],
+                      summary: result.summary || '',
+                      score_breakdown: result,
+                    }))}
+                    fileName={batchName || 'screening-results'}
                   />
-                ))
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Detailed Results</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {screeningResults.map((result) => (
+                          <ScreeningResult
+                            key={result.id}
+                            result={result}
+                            candidate={result.candidate}
+                          />
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
               )}
             </div>
           </TabsContent>
