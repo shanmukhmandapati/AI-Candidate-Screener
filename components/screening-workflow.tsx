@@ -492,7 +492,6 @@ export function ScreeningWorkflow() {
               setResults([])
               setCandidates([])
               setFile(null)
-              setJobDescription('')
             }}
           >
             Start New Screening
