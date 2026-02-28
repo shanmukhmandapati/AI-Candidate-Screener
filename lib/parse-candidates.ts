@@ -23,16 +23,17 @@ interface ParseResult {
  */
 export function parseCSVContent(content: string): ParseResult {
   const errors: string[] = []
-  const lines = content.trim().split('\n')
   
-  console.log('[v0] CSV Lines:', lines.length)
+  // Robust CSV parsing that handles quoted fields with newlines
+  const rows = parseCSVRows(content)
+  console.log('[v0] CSV Rows:', rows.length)
   
-  if (lines.length < 2) {
+  if (rows.length < 2) {
     return { success: false, candidates: [], errors: ['No data rows found'] }
   }
 
   // Parse header
-  const headers = parseCSVLine(lines[0])
+  const headers = rows[0]
   console.log('[v0] Headers found:', headers)
   
   // Map expected columns
@@ -55,8 +56,8 @@ export function parseCSVContent(content: string): ParseResult {
 
   // Parse data rows
   const candidates: ParsedCandidate[] = []
-  for (let i = 1; i < lines.length; i++) {
-    const row = parseCSVLine(lines[i])
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i]
     
     if (row.every(cell => !cell.trim())) continue // Skip empty rows
     
@@ -84,33 +85,59 @@ export function parseCSVContent(content: string): ParseResult {
 }
 
 /**
- * Parse a CSV line respecting quoted fields
+ * Parse CSV content into rows, handling quoted fields with embedded newlines
  */
-function parseCSVLine(line: string): string[] {
-  const result: string[] = []
-  let current = ''
+function parseCSVRows(content: string): string[][] {
+  const rows: string[][] = []
+  let current: string[] = []
+  let currentField = ''
   let insideQuotes = false
 
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i]
-    
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i]
+    const nextChar = content[i + 1]
+
     if (char === '"') {
-      if (insideQuotes && line[i + 1] === '"') {
-        current += '"'
+      if (insideQuotes && nextChar === '"') {
+        // Escaped quote
+        currentField += '"'
         i++
       } else {
+        // Toggle quote mode
         insideQuotes = !insideQuotes
       }
     } else if (char === ',' && !insideQuotes) {
-      result.push(current)
-      current = ''
+      // End of field
+      current.push(currentField.trim())
+      currentField = ''
+    } else if ((char === '\n' || char === '\r') && !insideQuotes) {
+      // End of row
+      if (currentField.trim() || current.length > 0) {
+        current.push(currentField.trim())
+        if (current.some(f => f.length > 0)) {
+          rows.push(current)
+        }
+        current = []
+        currentField = ''
+      }
+      // Skip \r\n combo
+      if (char === '\r' && nextChar === '\n') {
+        i++
+      }
     } else {
-      current += char
+      currentField += char
     }
   }
-  
-  result.push(current)
-  return result
+
+  // Add last field and row
+  if (currentField.trim() || current.length > 0) {
+    current.push(currentField.trim())
+  }
+  if (current.some(f => f.length > 0)) {
+    rows.push(current)
+  }
+
+  return rows
 }
 
 /**
@@ -135,10 +162,6 @@ function findColumnIndex(headers: string[], possibleNames: string[]): number {
   
   return -1
 }
-
-/**
- * Use the PapaParse library if available
- */
 export async function parseFileWithPapaParse(file: File): Promise<ParseResult> {
   try {
     // Dynamic import to avoid build-time dependency
