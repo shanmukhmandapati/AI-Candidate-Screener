@@ -15,7 +15,7 @@ export function extractSheetId(url: string): string | null {
 }
 
 /**
- * Fetch Google Sheet as CSV using CORS proxy
+ * Fetch Google Sheet as CSV using backend API route
  * Note: Sheet must be shared as "Anyone with the link can view"
  */
 export async function fetchGoogleSheet(sheetUrl: string): Promise<string> {
@@ -24,29 +24,27 @@ export async function fetchGoogleSheet(sheetUrl: string): Promise<string> {
     throw new Error('Invalid Google Sheets URL. Please provide a valid Google Sheets link or Sheet ID.')
   }
 
-  // Default to first sheet (gid=0)
-  const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`
-  
-  console.log('[v0] Google Sheet ID extracted:', sheetId)
-  console.log('[v0] CSV export URL:', csvUrl)
+  console.log('[v0] Fetching Google Sheet via API:', sheetId)
 
   try {
-    // Use corsproxy.io to bypass CORS restrictions
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(csvUrl)}`
-    console.log('[v0] Fetching via CORS proxy')
-    
-    const response = await fetch(proxyUrl)
+    const response = await fetch('/api/google-sheets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sheetId })
+    })
+
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch sheet (HTTP ${response.status}). Make sure the sheet is shared as "Anyone with the link can view".`)
+      throw new Error(data.error || `Failed to fetch sheet (HTTP ${response.status})`)
     }
-    
-    const csv = await response.text()
-    if (!csv.trim()) {
+
+    if (!data.csv || !data.csv.trim()) {
       throw new Error('Sheet appears to be empty. Please check the URL and make sure the sheet has data.')
     }
-    
-    console.log('[v0] Successfully fetched Google Sheet, length:', csv.length)
-    return csv
+
+    console.log('[v0] Successfully fetched Google Sheet, length:', data.csv.length)
+    return data.csv
   } catch (err) {
     console.error('[v0] Google Sheets fetch error:', err)
     if (err instanceof Error) {
