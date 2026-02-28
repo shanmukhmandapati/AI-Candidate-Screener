@@ -262,10 +262,17 @@ export function ScreeningWorkflow() {
           {error && (
             <div className="bg-red-50 border border-red-200 rounded p-4 text-sm text-red-700 space-y-2">
               <p className="font-medium">Error loading file:</p>
-              <p>{error}</p>
-              <p className="text-xs text-red-600 mt-2">
-                Tip: Make sure your file has a column named "Email" or similar.
-              </p>
+              <p className="whitespace-pre-wrap">{error}</p>
+              {error.includes('Anyone with the link') && (
+                <div className="text-xs text-red-600 mt-3 space-y-1">
+                  <p className="font-medium">Common issues:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Sharing permission set to "Viewer" instead of "Editor"? Try Editor.</li>
+                    <li>File is a Google Sheet (not Excel shared in Drive)?</li>
+                    <li>URL should be: docs.google.com/spreadsheets/d/...</li>
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
