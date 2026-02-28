@@ -25,23 +25,32 @@ export function parseCSVContent(content: string): ParseResult {
   const errors: string[] = []
   const lines = content.trim().split('\n')
   
+  console.log('[v0] CSV Lines:', lines.length)
+  
   if (lines.length < 2) {
     return { success: false, candidates: [], errors: ['No data rows found'] }
   }
 
   // Parse header
   const headers = parseCSVLine(lines[0])
+  console.log('[v0] Headers found:', headers)
   
   // Map expected columns
   const columnMapping = {
-    name: findColumnIndex(headers, ['name', 'full name', 'candidate name']),
-    email: findColumnIndex(headers, ['email', 'email address']),
-    phone: findColumnIndex(headers, ['phone', 'phone number', 'contact']),
-    linkedinUrl: findColumnIndex(headers, ['linkedin', 'linkedin url', 'linkedin profile']),
-    currentRole: findColumnIndex(headers, ['role', 'current role', 'position', 'job title']),
-    skills: findColumnIndex(headers, ['skills', 'technical skills']),
-    experience: findColumnIndex(headers, ['experience', 'years of experience', 'experience years']),
+    name: findColumnIndex(headers, ['name', 'full name', 'candidate name', 'applicant']),
+    email: findColumnIndex(headers, ['email', 'email address', 'e-mail', 'contact email']),
+    phone: findColumnIndex(headers, ['phone', 'phone number', 'contact', 'mobile']),
+    linkedinUrl: findColumnIndex(headers, ['linkedin', 'linkedin url', 'linkedin profile', 'profile']),
+    currentRole: findColumnIndex(headers, ['role', 'current role', 'position', 'job title', 'title']),
+    skills: findColumnIndex(headers, ['skills', 'technical skills', 'expertise']),
+    experience: findColumnIndex(headers, ['experience', 'years of experience', 'experience years', 'yoe']),
     education: findColumnIndex(headers, ['education', 'degree', 'qualification']),
+  }
+
+  console.log('[v0] Column mapping:', columnMapping)
+  
+  if (columnMapping.email === -1) {
+    return { success: false, candidates: [], errors: ['Email column not found. Please ensure a column named "Email" or similar exists.'] }
   }
 
   // Parse data rows
@@ -69,6 +78,8 @@ export function parseCSVContent(content: string): ParseResult {
     })
   }
 
+  console.log('[v0] Parsed candidates:', candidates.length, 'Errors:', errors.length)
+  
   return { success: candidates.length > 0, candidates, errors }
 }
 
@@ -103,15 +114,25 @@ function parseCSVLine(line: string): string[] {
 }
 
 /**
- * Find column index by checking multiple possible names
+ * Find column index by checking multiple possible names (case-insensitive, flexible matching)
  */
 function findColumnIndex(headers: string[], possibleNames: string[]): number {
+  const lowerHeaders = headers.map(h => h.toLowerCase().trim())
+  
   for (const possibleName of possibleNames) {
-    const index = headers.findIndex(h =>
-      h.toLowerCase().includes(possibleName.toLowerCase())
+    const lowerPossible = possibleName.toLowerCase().trim()
+    
+    // Exact match first
+    const exactIndex = lowerHeaders.findIndex(h => h === lowerPossible)
+    if (exactIndex !== -1) return exactIndex
+    
+    // Partial match (contains)
+    const partialIndex = lowerHeaders.findIndex(h => 
+      h.includes(lowerPossible) || lowerPossible.includes(h)
     )
-    if (index !== -1) return index
+    if (partialIndex !== -1) return partialIndex
   }
+  
   return -1
 }
 

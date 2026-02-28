@@ -47,14 +47,21 @@ export function ScreeningWorkflow() {
     setFile(selectedFile)
 
     try {
+      console.log('[v0] Parsing file:', selectedFile.name, 'Size:', selectedFile.size)
       const result = await parseFile(selectedFile)
+      console.log('[v0] Parse result:', result)
 
-      if (!result.success) {
-        toast.warning('Some rows had issues, but continuing with valid candidates')
+      if (result.errors.length > 0) {
+        console.log('[v0] Parse errors:', result.errors)
+        toast.warning(`${result.candidates.length} candidates loaded with ${result.errors.length} rows skipped`)
       }
 
       if (result.candidates.length === 0) {
-        setError('No valid candidates found in file')
+        const errorMsg = result.errors.length > 0 
+          ? result.errors[0] 
+          : 'No valid candidates found in file. Ensure file has an Email column.'
+        setError(errorMsg)
+        toast.error(errorMsg)
         return
       }
 
@@ -62,8 +69,10 @@ export function ScreeningWorkflow() {
       setStep('config')
       toast.success(`✅ ${result.candidates.length} candidates loaded from file`)
     } catch (err) {
-      setError('Failed to parse file')
-      toast.error('Failed to parse file')
+      const errorMsg = `Failed to parse file: ${err instanceof Error ? err.message : String(err)}`
+      console.error('[v0] Parse error:', err)
+      setError(errorMsg)
+      toast.error(errorMsg)
     }
   }
 
@@ -139,13 +148,13 @@ export function ScreeningWorkflow() {
           <CardTitle>Upload Candidates</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="border-2 border-dashed rounded-lg p-8 text-center">
+          <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-blue-300 hover:bg-blue-50/50 transition-colors">
             <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
             <label className="cursor-pointer">
               <span className="text-sm font-medium">
                 Click to upload or drag and drop
               </span>
-              <p className="text-xs text-gray-500 mt-1">CSV or Excel file</p>
+              <p className="text-xs text-gray-500 mt-1">CSV or Excel file with Email column</p>
               <Input
                 type="file"
                 accept=".csv,.xlsx,.xls"
@@ -156,17 +165,23 @@ export function ScreeningWorkflow() {
           </div>
 
           {file && (
-            <div className="text-sm">
-              <p className="font-medium">Selected: {file.name}</p>
-              <p className="text-gray-600">
-                {candidates.length} candidates ready
-              </p>
+            <div className="text-sm bg-blue-50 p-3 rounded border border-blue-200">
+              <p className="font-medium text-blue-900">Selected: {file.name}</p>
+              {candidates.length > 0 && (
+                <p className="text-blue-700 mt-1">
+                  ✓ {candidates.length} candidates ready
+                </p>
+              )}
             </div>
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">
-              {error}
+            <div className="bg-red-50 border border-red-200 rounded p-4 text-sm text-red-700 space-y-2">
+              <p className="font-medium">Error loading file:</p>
+              <p>{error}</p>
+              <p className="text-xs text-red-600 mt-2">
+                Tip: Make sure your file has a column named "Email", "email", or similar.
+              </p>
             </div>
           )}
 
