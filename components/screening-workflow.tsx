@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
-import { Upload, Download, Loader2 } from 'lucide-react'
+import { Upload, Download, Loader2, Link as LinkIcon } from 'lucide-react'
 import { parseFile } from '@/lib/parse-candidates'
+import { parseCSVContent } from '@/lib/parse-candidates'
+import { fetchGoogleSheet, isValidGoogleSheetsUrl } from '@/lib/google-sheets'
 import {
   sendToN8N,
   mergeCandidatesWithResults,
@@ -32,6 +34,7 @@ export function ScreeningWorkflow() {
   const [error, setError] = useState<string | null>(null)
   const [candidates, setCandidates] = useState<any[]>([])
   const [results, setResults] = useState<MergedCandidate[]>([])
+  const [sheetUrl, setSheetUrl] = useState('')
   const [loadingSteps, setLoadingSteps] = useState<LoadingStep[]>([
     { label: 'Parsing file...', icon: '📂', completed: false },
     { label: 'Sending to AI...', icon: '📤', completed: false },
@@ -67,12 +70,51 @@ export function ScreeningWorkflow() {
 
       setCandidates(result.candidates)
       setStep('config')
-      toast.success(`✅ ${result.candidates.length} candidates loaded from file`)
+      toast.success(`✅ ${result.candidates.length} candidates loaded`)
     } catch (err) {
       const errorMsg = `Failed to parse file: ${err instanceof Error ? err.message : String(err)}`
       console.error('[v0] Parse error:', err)
       setError(errorMsg)
       toast.error(errorMsg)
+    }
+  }
+
+  const handleGoogleSheetSubmit = async () => {
+    if (!sheetUrl.trim()) {
+      setError('Please enter a Google Sheets URL or ID')
+      return
+    }
+
+    if (!isValidGoogleSheetsUrl(sheetUrl)) {
+      setError('Invalid Google Sheets URL. Please provide a valid link or sheet ID.')
+      return
+    }
+
+    setError(null)
+    setLoading(true)
+
+    try {
+      console.log('[v0] Fetching Google Sheet')
+      const csvContent = await fetchGoogleSheet(sheetUrl)
+      const result = parseCSVContent(csvContent)
+
+      if (result.candidates.length === 0) {
+        setError('No valid candidates found in sheet. Ensure it has an Email column.')
+        toast.error('No candidates found')
+        return
+      }
+
+      setCandidates(result.candidates)
+      setSheetUrl('')
+      setStep('config')
+      toast.success(`✅ ${result.candidates.length} candidates loaded from Google Sheet`)
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to load Google Sheet'
+      console.error('[v0] Google Sheet error:', err)
+      setError(errorMsg)
+      toast.error(errorMsg)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -146,41 +188,76 @@ export function ScreeningWorkflow() {
       <Card>
         <CardHeader>
           <CardTitle>Upload Candidates</CardTitle>
+          <p className="text-sm text-gray-600 mt-2">Support for CSV, Excel, or Google Sheets</p>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-blue-300 hover:bg-blue-50/50 transition-colors">
-            <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <label className="cursor-pointer">
-              <span className="text-sm font-medium">
-                Click to upload or drag and drop
-              </span>
-              <p className="text-xs text-gray-500 mt-1">CSV or Excel file with Email column</p>
-              <Input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-            </label>
+          {/* File Upload Tab */}
+          <div>
+            <p className="text-sm font-medium mb-3">Option 1: Upload File</p>
+            <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-blue-300 hover:bg-blue-50/50 transition-colors">
+              <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <label className="cursor-pointer">
+                <span className="text-sm font-medium">
+                  Click to upload or drag and drop
+                </span>
+                <p className="text-xs text-gray-500 mt-1">CSV, Excel, or Numbers format</p>
+                <Input
+                  type="file"
+                  accept=".csv,.xlsx,.xls,.numbers"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {file && (
+              <div className="text-sm bg-blue-50 p-3 rounded border border-blue-200 mt-3">
+                <p className="font-medium text-blue-900">Selected: {file.name}</p>
+                {candidates.length > 0 && (
+                  <p className="text-blue-700 mt-1">
+                    ✓ {candidates.length} candidates ready
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
-          {file && (
-            <div className="text-sm bg-blue-50 p-3 rounded border border-blue-200">
-              <p className="font-medium text-blue-900">Selected: {file.name}</p>
-              {candidates.length > 0 && (
-                <p className="text-blue-700 mt-1">
-                  ✓ {candidates.length} candidates ready
+          {/* Google Sheets Tab */}
+          <div className="border-t pt-6">
+            <p className="text-sm font-medium mb-3">Option 2: Use Google Sheet</p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Google Sheets URL or ID
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Paste Google Sheets URL or Sheet ID..."
+                    value={sheetUrl}
+                    onChange={(e) => setSheetUrl(e.target.value)}
+                    disabled={loading}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleGoogleSheetSubmit}
+                    disabled={!sheetUrl.trim() || loading}
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Share the sheet publicly or via link. URL: https://docs.google.com/spreadsheets/d/SHEET_ID/edit
                 </p>
-              )}
+              </div>
             </div>
-          )}
+          </div>
 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded p-4 text-sm text-red-700 space-y-2">
               <p className="font-medium">Error loading file:</p>
               <p>{error}</p>
               <p className="text-xs text-red-600 mt-2">
-                Tip: Make sure your file has a column named "Email", "email", or similar.
+                Tip: Make sure your file has a column named "Email" or similar.
               </p>
             </div>
           )}
@@ -189,8 +266,9 @@ export function ScreeningWorkflow() {
             onClick={() => setStep('config')}
             disabled={!candidates.length}
             className="w-full"
+            size="lg"
           >
-            Continue with {candidates.length} Candidates
+            Continue
           </Button>
         </CardContent>
       </Card>
