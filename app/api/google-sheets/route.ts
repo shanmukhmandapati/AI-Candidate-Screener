@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * API route to fetch Google Sheet CSV
- * This bypasses CORS issues by running on the server
+ * API route to fetch Google Sheet CSV using allorigins.win proxy
  */
 export async function POST(request: NextRequest) {
   try {
@@ -17,52 +16,36 @@ export async function POST(request: NextRequest) {
 
     console.log('[v0] Server: Fetching Google Sheet:', sheetId)
 
-    // Try multiple export URLs - some work better than others
-    const urls = [
-      // Standard export URL
-      `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`,
-      // Alternative export format
-      `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=0`,
-    ]
+    // Build the CSV export URL
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(csvUrl)}`
 
-    let lastError: Error | null = null
+    console.log('[v0] Server: Using allorigins proxy')
 
-    for (const url of urls) {
-      try {
-        console.log('[v0] Server: Trying URL:', url)
-        const response = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-          }
-        })
+    const response = await fetch(proxyUrl)
 
-        if (response.ok) {
-          const csv = await response.text()
-          
-          if (!csv.trim()) {
-            lastError = new Error('Sheet appears to be empty')
-            continue
-          }
-
-          console.log('[v0] Server: Successfully fetched Google Sheet, length:', csv.length)
-          return NextResponse.json({ csv })
-        }
-
-        lastError = new Error(`HTTP ${response.status}`)
-      } catch (err) {
-        lastError = err instanceof Error ? err : new Error(String(err))
-        continue
-      }
+    if (!response.ok) {
+      console.error('[v0] Server: Fetch failed with status:', response.status)
+      return NextResponse.json(
+        { 
+          error: `Failed to fetch sheet (HTTP ${response.status}). Make sure:\n1. The Google Sheet is shared as "Anyone with the link"\n2. You have pasted the correct URL\n3. The sheet has data with an Email column` 
+        },
+        { status: 400 }
+      )
     }
 
-    // All URLs failed
-    console.error('[v0] Server: All fetch attempts failed:', lastError?.message)
-    return NextResponse.json(
-      { 
-        error: `Failed to fetch sheet. Make sure:\n1. The Google Sheet is shared as "Anyone with the link"\n2. The share link is set to "Viewer" or "Editor"\n3. You have pasted the correct URL\n\nError: ${lastError?.message || 'Unknown error'}` 
-      },
-      { status: 400 }
-    )
+    const csv = await response.text()
+
+    if (!csv.trim()) {
+      console.error('[v0] Server: Sheet appears empty')
+      return NextResponse.json(
+        { error: 'Sheet appears to be empty. Please check the URL and make sure the sheet has data.' },
+        { status: 400 }
+      )
+    }
+
+    console.log('[v0] Server: Successfully fetched Google Sheet, length:', csv.length)
+    return NextResponse.json({ csv })
   } catch (err) {
     console.error('[v0] Server: Google Sheets error:', err)
     return NextResponse.json(

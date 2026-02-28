@@ -30,6 +30,8 @@ export async function sendToN8N(
   candidates: ParsedCandidate[],
   jobDescription: string
 ): Promise<N8NScreeningResult[]> {
+  console.log('[v0] Sending to N8N:', candidates.length, 'candidates')
+  
   const response = await fetch(
     'https://visitshannu.app.n8n.cloud/webhook/screen-candidates',
     {
@@ -42,12 +44,20 @@ export async function sendToN8N(
     }
   )
 
+  console.log('[v0] N8N response status:', response.status)
+
   if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(errorData.message || 'Failed to send candidates to n8n')
+    const errorData = await response.json().catch(() => ({}))
+    console.error('[v0] N8N error:', errorData)
+    throw new Error(
+      errorData.message || 
+      `Failed to screen candidates with N8N (HTTP ${response.status}). Make sure your N8N workflow is active and using the production URL.`
+    )
   }
 
   const data = await response.json()
+  console.log('[v0] N8N returned:', Array.isArray(data) ? data.length + ' results' : 'data object')
+  
   return Array.isArray(data) ? data : data.candidates || data.results || []
 }
 
