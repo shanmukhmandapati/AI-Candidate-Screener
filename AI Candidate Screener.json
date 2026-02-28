@@ -1,0 +1,291 @@
+{
+  "name": "AI Candidate Screener",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "screen-candidates",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -368,
+        -256
+      ],
+      "id": "d22032c8-a023-4ecb-a2fc-37b215ac3a5b",
+      "name": "Webhook",
+      "webhookId": "147bb57c-83db-40d1-9169-2c92a95a1a94"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        976,
+        16
+      ],
+      "id": "77057339-c123-4182-ab4e-19094ef68e8f",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body.candidates",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        -208
+      ],
+      "id": "b237d5b2-1c0b-4376-ba01-d71fff4a7fc1",
+      "name": "Split Out",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "scoredCandidates",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        624,
+        -304
+      ],
+      "id": "1c6bec3c-9f72-4f0c-84a6-eb72bc295724",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "scoredCandidates[0].match_score",
+              "order": "descending"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        704,
+        16
+      ],
+      "id": "0cc6a79d-d955-47a8-8da5-46942bedc48f",
+      "name": "Sort"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6602bcc6-f983-4e5f-8eed-2001c3aa7468",
+              "name": "match_score",
+              "value": "={{ JSON.parse($json.output[0].content[0].text).match_score }}",
+              "type": "number"
+            },
+            {
+              "id": "7f9e617f-7771-4b7e-9e48-37eeb11356f9",
+              "name": "decision",
+              "value": "={{ JSON.parse($json.output[0].content[0].text).decision }}",
+              "type": "string"
+            },
+            {
+              "id": "ef88d677-8564-4471-844e-e6e66d60a2f6",
+              "name": "matching_skills",
+              "value": "={{ JSON.parse($json.output[0].content[0].text).matching_skills.join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "23b10e28-b42f-4e9e-9a0a-bfe477bdc2cf",
+              "name": "missing_skills",
+              "value": "={{ JSON.parse($json.output[0].content[0].text).missing_skills.join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "613e22f2-ccc2-4c51-934b-3884cd4be139",
+              "name": "ai_summary",
+              "value": "={{ JSON.parse($json.output[0].content[0].text).ai_summary }}",
+              "type": "string"
+            },
+            {
+              "id": "534e8680-63d5-48d4-b855-71134579a4da",
+              "name": "candidate_name",
+              "value": "={{ $json.output[0].content[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "bee1a9cd-226a-4faa-b535-8eff4bb49599",
+              "name": "candidate_email",
+              "value": "={{ $json.output[0].content[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "f044ec32-98af-4266-88b0-05495e7a4a19",
+              "name": "candidate_skills",
+              "value": "={{ $json.output[0].content[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "d0473a09-59f5-45f9-a0ef-1198407894c8",
+              "name": "candidate_experience",
+              "value": "={{ $json.output[0].content[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "4d8577fd-1073-4a7b-a867-17b654ee9511",
+              "name": "candidate_education",
+              "value": "={{ $json.output[0].content[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        384,
+        -256
+      ],
+      "id": "02b14ee6-0d13-4387-ae14-677800ec0526",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "llama-3.3-70b-versatile",
+          "mode": "list",
+          "cachedResultName": "LLAMA-3.3-70B-VERSATILE"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are a senior HR screening expert. Evaluate candidates against job descriptions with precision and fairness.\n\nRespond ONLY with valid JSON. No markdown, no extra text, no explanation.\n\n{\n  \"match_score\": <integer 0-100>,\n  \"decision\": \"Shortlist\" or \"Reject\",\n  \"matching_skills\": [\"skill1\", \"skill2\"],\n  \"missing_skills\": [\"skill1\", \"skill2\"],\n  \"ai_summary\": \"2-3 sentence evaluation\",\n  \"score_breakdown\": {\n    \"skills_match\": <0-40>,\n    \"experience_match\": <0-30>,\n    \"education_match\": <0-20>,\n    \"overall_fit\": <0-10>\n  }\n}\n\nRules:\n- 75 to 100 = Shortlist\n- 0 to 74 = Reject\n- Be objective and consistent"
+            },
+            {
+              "content": "=## JOB DESCRIPTION\n{{ $json.body.jobDescription }}\n\n## CANDIDATE PROFILE\nName: {{ $json[\"body.candidates\"].name }}\nEmail: {{ $json[\"body.candidates\"].email }}\nSkills: {{ $json[\"body.candidates\"].skills }}\nExperience: {{ $json[\"body.candidates\"].experience }}\nEducation: {{ $json[\"body.candidates\"].education }}\nCurrent Role: {{ $json[\"body.candidates\"].currentRole }}\n\nReturn ONLY the JSON."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "store": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        64,
+        -208
+      ],
+      "id": "93760194-f9a2-4201-9e9f-3b044489a5a7",
+      "name": "Message a model",
+      "executeOnce": false,
+      "retryOnFail": true,
+      "maxTries": 5,
+      "credentials": {
+        "openAiApi": {
+          "id": "ACGYXxxlWGXB5ii7",
+          "name": "OpenAi account 3"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Sort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "8afb1654-8cfb-41aa-a51a-5f63a1d9e0f9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "09f0a16f6ca166b47b7f993e34e2bd76670e9ec576c193df857c8c55c39ece42"
+  },
+  "id": "CToh20nMeqQkqwts",
+  "tags": []
+}
