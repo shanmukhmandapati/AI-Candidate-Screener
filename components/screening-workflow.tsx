@@ -260,9 +260,20 @@ export function ScreeningWorkflow() {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded p-4 text-sm text-red-700 space-y-2">
+            <div className="bg-red-50 border border-red-200 rounded p-4 text-sm text-red-700 space-y-3">
               <p className="font-medium">Error loading file:</p>
-              <p className="whitespace-pre-wrap">{error}</p>
+              <p className="whitespace-pre-wrap text-red-800">{error}</p>
+              {error.includes('HTTP 502') && (
+                <div className="text-xs text-red-600 mt-3 space-y-2 bg-red-100 p-2 rounded">
+                  <p className="font-medium">Quick fixes for 502 error:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Wait 30 seconds and try again (Google may be rate-limiting)</li>
+                    <li>Verify sheet is shared: "Anyone with the link" access</li>
+                    <li>Use the exact URL format: docs.google.com/spreadsheets/d/SHEET_ID/edit</li>
+                    <li>Try uploading CSV/Excel file instead (Option 1)</li>
+                  </ul>
+                </div>
+              )}
               {error.includes('Anyone with the link') && (
                 <div className="text-xs text-red-600 mt-3 space-y-1">
                   <p className="font-medium">Common issues:</p>
@@ -273,6 +284,8 @@ export function ScreeningWorkflow() {
                   </ul>
                 </div>
               )}
+            </div>
+          )}
             </div>
           )}
 
