@@ -103,15 +103,6 @@ export function mergeCandidatesWithResults(
     .map((candidate, index) => ({ ...candidate, rank: index + 1 }))
 }
 
-// Sort by match score descending and add ranks
-return merged
-  .sort((a, b) => b.match_score - a.match_score)
-  .map((candidate, index) => ({
-    ...candidate,
-    rank: index + 1,
-  }))
-
-
 /**
  * Get top stats from merged candidates
  */
