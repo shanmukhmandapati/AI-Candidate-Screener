@@ -60,8 +60,8 @@ export function ScreeningWorkflow() {
       }
 
       if (result.candidates.length === 0) {
-        const errorMsg = result.errors.length > 0 
-          ? result.errors[0] 
+        const errorMsg = result.errors.length > 0
+          ? result.errors[0]
           : 'No valid candidates found in file. Ensure file has an Email column.'
         setError(errorMsg)
         toast.error(errorMsg)
@@ -284,8 +284,6 @@ export function ScreeningWorkflow() {
                   </ul>
                 </div>
               )}
-            </div>
-          )}
             </div>
           )}
 
