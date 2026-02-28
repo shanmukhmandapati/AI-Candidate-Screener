@@ -33,7 +33,7 @@ export async function sendToN8N(
   console.log('[v0] Sending to N8N:', candidates.length, 'candidates')
   
   const response = await fetch(
-    'https://visitshannu.app.n8n.cloud/webhook/screen-candidates',
+    'https://visitshannu.app.n8n.cloud/webhook-test/screen-candidates',
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -51,7 +51,7 @@ export async function sendToN8N(
     console.error('[v0] N8N error:', errorData)
     throw new Error(
       errorData.message || 
-      `Failed to screen candidates with N8N (HTTP ${response.status}). Make sure your N8N workflow is active and using the production URL.`
+      `Failed to screen candidates with N8N (HTTP ${response.status}). Make sure your N8N workflow is active.`
     )
   }
 
