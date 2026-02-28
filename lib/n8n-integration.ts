@@ -30,34 +30,34 @@ export async function sendToN8N(
   candidates: ParsedCandidate[],
   jobDescription: string
 ): Promise<N8NScreeningResult[]> {
-  console.log('[v0] Sending to N8N:', candidates.length, 'candidates')
-  
   const response = await fetch(
     'https://visitshannu.app.n8n.cloud/webhook-test/screen-candidates',
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jobDescription,
-        candidates,
-      }),
+      body: JSON.stringify({ jobDescription, candidates }),
     }
   )
 
-  console.log('[v0] N8N response status:', response.status)
-
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
-    console.error('[v0] N8N error:', errorData)
     throw new Error(
-      errorData.message || 
-      `Failed to screen candidates with N8N (HTTP ${response.status}). Make sure your N8N workflow is active.`
+      errorData.message ||
+      `Failed to screen candidates (HTTP ${response.status}). Make sure your N8N workflow is active.`
     )
   }
 
   const data = await response.json()
-  console.log('[v0] N8N returned:', Array.isArray(data) ? data.length + ' results' : 'data object')
-  
+
+  // Handle: [{ scoredCandidates: [...] }]
+  if (Array.isArray(data) && data[0]?.scoredCandidates) {
+    return data[0].scoredCandidates
+  }
+  // Handle: { scoredCandidates: [...] }
+  if (data?.scoredCandidates) {
+    return data.scoredCandidates
+  }
+  // Handle flat array
   return Array.isArray(data) ? data : data.candidates || data.results || []
 }
 
@@ -66,37 +66,51 @@ export async function sendToN8N(
  */
 export function mergeCandidatesWithResults(
   originalCandidates: ParsedCandidate[],
-  screeningResults: N8NScreeningResult[]
+  screeningResults: any[]
 ): MergedCandidate[] {
-  const resultsMap = new Map(
-    screeningResults.map((r) => [r.email.toLowerCase(), r])
-  )
-
   const today = new Date().toISOString().split('T')[0]
 
-  const merged = originalCandidates.map((candidate) => {
-    const result = resultsMap.get(candidate.email.toLowerCase())
+  // Merge BY INDEX since N8N returns null for candidate_email
+  const merged = originalCandidates.map((candidate, index) => {
+    const result = screeningResults[index]
+
+    const matchingSkills = result?.matching_skills
+      ? typeof result.matching_skills === 'string'
+        ? result.matching_skills.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : result.matching_skills
+      : []
+
+    const missingSkills = result?.missing_skills
+      ? typeof result.missing_skills === 'string'
+        ? result.missing_skills.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : result.missing_skills
+      : []
 
     return {
       ...candidate,
       match_score: result?.match_score ?? 0,
       decision: result?.decision ?? '',
-      matching_skills: result?.matching_skills ?? [],
-      missing_skills: result?.missing_skills ?? [],
+      matching_skills: matchingSkills,
+      missing_skills: missingSkills,
       ai_summary: result?.ai_summary ?? '',
       score_breakdown: JSON.stringify(result?.score_breakdown ?? {}),
       screened_date: result ? today : '',
     }
   })
 
-  // Sort by match score descending and add ranks
   return merged
     .sort((a, b) => b.match_score - a.match_score)
-    .map((candidate, index) => ({
-      ...candidate,
-      rank: index + 1,
-    }))
+    .map((candidate, index) => ({ ...candidate, rank: index + 1 }))
 }
+
+// Sort by match score descending and add ranks
+return merged
+  .sort((a, b) => b.match_score - a.match_score)
+  .map((candidate, index) => ({
+    ...candidate,
+    rank: index + 1,
+  }))
+
 
 /**
  * Get top stats from merged candidates
