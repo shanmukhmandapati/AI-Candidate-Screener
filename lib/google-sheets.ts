@@ -15,36 +15,40 @@ export function extractSheetId(url: string): string | null {
 }
 
 /**
- * Fetch Google Sheet as CSV using public API
+ * Fetch Google Sheet as CSV using CORS proxy
  * Note: Sheet must be shared as "Anyone with the link can view"
  */
 export async function fetchGoogleSheet(sheetUrl: string): Promise<string> {
   const sheetId = extractSheetId(sheetUrl)
   if (!sheetId) {
-    throw new Error('Invalid Google Sheets URL. Please provide a valid Google Sheets link.')
+    throw new Error('Invalid Google Sheets URL. Please provide a valid Google Sheets link or Sheet ID.')
   }
 
   // Default to first sheet (gid=0)
   const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`
   
-  console.log('[v0] Fetching Google Sheet:', csvUrl)
+  console.log('[v0] Google Sheet ID extracted:', sheetId)
+  console.log('[v0] CSV export URL:', csvUrl)
 
   try {
-    const response = await fetch(csvUrl)
+    // Use corsproxy.io to bypass CORS restrictions
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(csvUrl)}`
+    console.log('[v0] Fetching via CORS proxy')
+    
+    const response = await fetch(proxyUrl)
     if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('Sheet not found. Make sure the URL is correct and the sheet is shared.')
-      }
-      throw new Error(`Failed to fetch sheet: ${response.statusText}`)
+      throw new Error(`Failed to fetch sheet (HTTP ${response.status}). Make sure the sheet is shared as "Anyone with the link can view".`)
     }
     
     const csv = await response.text()
     if (!csv.trim()) {
-      throw new Error('Sheet appears to be empty')
+      throw new Error('Sheet appears to be empty. Please check the URL and make sure the sheet has data.')
     }
     
+    console.log('[v0] Successfully fetched Google Sheet, length:', csv.length)
     return csv
   } catch (err) {
+    console.error('[v0] Google Sheets fetch error:', err)
     if (err instanceof Error) {
       throw new Error(`Google Sheets Error: ${err.message}`)
     }

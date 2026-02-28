@@ -245,9 +245,16 @@ export function ScreeningWorkflow() {
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Share the sheet publicly or via link. URL: https://docs.google.com/spreadsheets/d/SHEET_ID/edit
-                </p>
+                <div className="text-xs text-gray-600 mt-3 space-y-2 bg-blue-50 p-3 rounded border border-blue-200">
+                  <p className="font-medium text-blue-900">How to share your Google Sheet:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-blue-800">
+                    <li>Open your Google Sheet</li>
+                    <li>Click Share button (top right)</li>
+                    <li>Change to "Anyone with the link can view"</li>
+                    <li>Copy the URL and paste it here</li>
+                  </ol>
+                  <p className="text-blue-700 mt-2">URL format: https://docs.google.com/spreadsheets/d/SHEET_ID/edit</p>
+                </div>
               </div>
             </div>
           </div>
