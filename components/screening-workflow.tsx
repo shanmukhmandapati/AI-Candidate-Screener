@@ -185,19 +185,26 @@ export function ScreeningWorkflow() {
 
   if (step === 'upload') {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload Candidates</CardTitle>
-          <p className="text-sm text-gray-600 mt-2">Support for CSV, Excel, or Google Sheets</p>
+      <Card className="bg-white/80 backdrop-blur border-0 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 border-b border-purple-200/30">
+          <CardTitle className="text-2xl bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            Start Screening
+          </CardTitle>
+          <p className="text-sm text-gray-600 mt-2">CSV, Excel, Numbers, or Google Sheets</p>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-6">
           {/* File Upload Tab */}
           <div>
-            <p className="text-sm font-medium mb-3">Option 1: Upload File</p>
-            <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-blue-300 hover:bg-blue-50/50 transition-colors">
-              <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <div className="flex items-center gap-2 mb-3">
+              <Upload className="w-4 h-4 text-purple-600" />
+              <p className="text-sm font-semibold text-gray-900">Option 1: Upload File</p>
+            </div>
+            <div className="border-2 border-dashed border-purple-200 rounded-xl p-8 text-center hover:border-purple-400 hover:bg-purple-50/30 transition-all cursor-pointer group">
+              <div className="group-hover:scale-110 transition-transform">
+                <Upload className="w-14 h-14 mx-auto mb-4 text-purple-400 group-hover:text-purple-600 transition-colors" />
+              </div>
               <label className="cursor-pointer">
-                <span className="text-sm font-medium">
+                <span className="text-sm font-semibold text-gray-900">
                   Click to upload or drag and drop
                 </span>
                 <p className="text-xs text-gray-500 mt-1">CSV, Excel, or Numbers format</p>
@@ -211,11 +218,14 @@ export function ScreeningWorkflow() {
             </div>
 
             {file && (
-              <div className="text-sm bg-blue-50 p-3 rounded border border-blue-200 mt-3">
-                <p className="font-medium text-blue-900">Selected: {file.name}</p>
+              <div className="text-sm bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200/50 mt-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <p className="font-semibold text-gray-900">Selected: {file.name}</p>
+                </div>
                 {candidates.length > 0 && (
-                  <p className="text-blue-700 mt-1">
-                    ✓ {candidates.length} candidates ready
+                  <p className="text-purple-700 mt-2 font-medium">
+                    ✓ {candidates.length} candidates ready to screen
                   </p>
                 )}
               </div>
@@ -223,12 +233,15 @@ export function ScreeningWorkflow() {
           </div>
 
           {/* Google Sheets Tab */}
-          <div className="border-t pt-6">
-            <p className="text-sm font-medium mb-3">Option 2: Use Google Sheet</p>
+          <div className="border-t border-gray-200/50 pt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <LinkIcon className="w-4 h-4 text-blue-600" />
+              <p className="text-sm font-semibold text-gray-900">Option 2: Google Sheet</p>
+            </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Google Sheets URL or ID
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Sheet URL or ID
                 </label>
                 <div className="flex gap-2">
                   <Input
@@ -236,51 +249,40 @@ export function ScreeningWorkflow() {
                     value={sheetUrl}
                     onChange={(e) => setSheetUrl(e.target.value)}
                     disabled={loading}
-                    className="flex-1"
+                    className="flex-1 border-blue-200 focus:border-blue-500 focus:ring-blue-500/20"
                   />
                   <Button
                     onClick={handleGoogleSheetSubmit}
                     disabled={!sheetUrl.trim() || loading}
+                    className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
                   </Button>
                 </div>
-                <div className="text-xs text-gray-600 mt-3 space-y-2 bg-blue-50 p-3 rounded border border-blue-200">
-                  <p className="font-medium text-blue-900">How to share your Google Sheet:</p>
+                <div className="text-xs bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-lg border border-blue-200/50 mt-3 space-y-2">
+                  <p className="font-semibold text-blue-900">How to share:</p>
                   <ol className="list-decimal list-inside space-y-1 text-blue-800">
                     <li>Open your Google Sheet</li>
-                    <li>Click Share button (top right)</li>
-                    <li>Change to "Anyone with the link can view"</li>
-                    <li>Copy the URL and paste it here</li>
+                    <li>Click Share (top right)</li>
+                    <li>Set to "Anyone with the link"</li>
+                    <li>Copy & paste URL here</li>
                   </ol>
-                  <p className="text-blue-700 mt-2">URL format: https://docs.google.com/spreadsheets/d/SHEET_ID/edit</p>
                 </div>
               </div>
             </div>
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded p-4 text-sm text-red-700 space-y-3">
-              <p className="font-medium">Error loading file:</p>
-              <p className="whitespace-pre-wrap text-red-800">{error}</p>
+            <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-lg p-4 text-sm text-red-700 space-y-3">
+              <p className="font-semibold text-red-900">Error loading file</p>
+              <p className="whitespace-pre-wrap text-red-800 text-xs">{error}</p>
               {error.includes('HTTP 502') && (
-                <div className="text-xs text-red-600 mt-3 space-y-2 bg-red-100 p-2 rounded">
-                  <p className="font-medium">Quick fixes for 502 error:</p>
+                <div className="text-xs text-red-700 mt-3 space-y-2 bg-red-100/50 p-3 rounded">
+                  <p className="font-semibold">Quick fixes:</p>
                   <ul className="list-disc list-inside space-y-1">
-                    <li>Wait 30 seconds and try again (Google may be rate-limiting)</li>
-                    <li>Verify sheet is shared: "Anyone with the link" access</li>
-                    <li>Use the exact URL format: docs.google.com/spreadsheets/d/SHEET_ID/edit</li>
-                    <li>Try uploading CSV/Excel file instead (Option 1)</li>
-                  </ul>
-                </div>
-              )}
-              {error.includes('Anyone with the link') && (
-                <div className="text-xs text-red-600 mt-3 space-y-1">
-                  <p className="font-medium">Common issues:</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>Sharing permission set to "Viewer" instead of "Editor"? Try Editor.</li>
-                    <li>File is a Google Sheet (not Excel shared in Drive)?</li>
-                    <li>URL should be: docs.google.com/spreadsheets/d/...</li>
+                    <li>Wait 30 seconds and retry</li>
+                    <li>Verify sharing is set to "Anyone with the link"</li>
+                    <li>Try uploading CSV/Excel instead</li>
                   </ul>
                 </div>
               )}
@@ -290,8 +292,7 @@ export function ScreeningWorkflow() {
           <Button
             onClick={() => setStep('config')}
             disabled={!candidates.length}
-            className="w-full"
-            size="lg"
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-6 text-base"
           >
             Continue
           </Button>
